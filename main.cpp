@@ -71,13 +71,6 @@ int main(){
 				break;
 			}
 			case 2 :{
-				std::cout<<"input 2 square vertexes"<<std::endl<<">>";
-				std::string b2, b3, b4;
-				std::cin>>buf>>b2>>b3>>b4;
-				if(!is_number(buf) || !is_number(b2) || !is_number(b3) || !is_number(b4)){
-					std::cout<<"wrong input!"<<std::endl;
-					continue;
-				}
 				std::cout<<"input index"<<std::endl<<">>";
 				std::cin>>buf;
 				if(!is_number(buf)){
