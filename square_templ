@@ -1,0 +1,65 @@
+#pragma once
+#include<iostream>
+#include<cmath>
+	
+template <class T>
+class Square{
+	public:
+		using type = T;
+		using vertex = std::pair<T, T>;
+		vertex p1={}, p2={};
+		Square(){}
+		Square(vertex a, vertex b){
+			if(a.first!=b.first || a.second!=b.second){
+				p1 = a; 
+				p2 = b;
+			}
+		}
+
+		double square()const {
+			std::pair<T, T> c {
+				-p2.second + (p2.second + p1.second + p2.first + p1.first)/2, 
+				p2.first + (p2.second + p1.second - p2.first - p1.first)/2
+			};
+			return (double) length( p1, c ) 
+				 * length( c, p2 );
+		}
+		
+		vertex center()const {
+			return std::pair{
+				( p1.first  + p2.first  ) / 2, 
+				( p1.second + p2.second ) / 2 
+			};
+		}
+		template<class A> friend std::ostream& operator <<(std::ostream &o, const Square<A> a);
+
+	private:
+		double length(std::pair<T, T> p1, std::pair<T, T> p2)const {
+					return sqrt(  (p2.first-p1.first)*(p2.first-p1.first) 
+								+ (p2.second-p1.second)*(p2.second-p1.second)  );				
+		}
+
+		double cos(std::pair<T, T> p1, std::pair<T, T> p2, std::pair<T, T> p3, std::pair<T, T> p4)const {
+					return  ( (p2.first-p1.first) * (p4.first-p3.first) 
+						+ (p2.second-p1.second) * (p4.second-p3.second) )
+						/ ( length(p1, p2) * length( p3, p4) ); 
+		}
+};
+
+template<typename T>
+std::ostream& operator <<(std::ostream &o, const Square<T> a){
+	o<<a.p1<<';'<<std::pair<T, T>{
+			-a.p2.second + (a.p2.second + a.p1.second + a.p2.first + a.p1.first)/2, 
+			a.p2.first + (a.p2.second + a.p1.second - a.p2.first - a.p1.first)/2
+		}<<';'<<a.p2<<';'<<std::pair<T, T>{
+			a.p2.second + (a.p2.first + a.p1.first - a.p2.second - a.p1.second)/2, 
+			-a.p2.first + (a.p2.second + a.p1.second + a.p2.first + a.p1.first)/2
+		};
+	return o;
+}
+
+template<typename T>
+std::ostream& operator <<(std::ostream &o, const std::pair<T, T>& a){
+		o<<"( "<<a.first<<" , "<<a.second<<" )";
+		return o;
+}

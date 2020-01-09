@@ -1,0 +1,113 @@
+#pragma once
+
+#include <memory>
+#include <list>
+
+template<class T, size_t N = 100> //type of values and size
+class Allocator
+{
+	private:
+		using store_t = std::list<std::pair<char*,char*>>; //pointers to begin and end of Bucket
+		std::shared_ptr<store_t> freeBuckets; //list of free Buckets
+		std::shared_ptr<char[]> pool; //array of pointers
+		
+	public:
+		using value_type = T;
+		using pointer = T* ;
+		using const_pointer = const T*;
+		using size_type = std::size_t;
+
+		template<typename U>
+		struct rebind {
+			using other = Allocator<U, N>;
+		};
+
+	   	std::shared_ptr<char[]> GetPool()const{ 
+			return pool; 
+		}
+		std::shared_ptr<store_t> GetList()const{
+			return freeBuckets; 
+		}
+
+		Allocator()noexcept{
+			static_assert(N > 0);
+			pool = std::shared_ptr<char[]>(new char[N], [](char *p){ delete[] p; });
+			freeBuckets = std::make_shared<store_t>(store_t());
+			store_t& l = *freeBuckets.get(); 
+			l.push_back(std::pair(pool.get(), pool.get() + N));
+		}
+		template<class U>
+		Allocator(const Allocator<U,N>& a)noexcept{
+			pool = a.GetPool();
+			freeBuckets = a.GetList();
+		}
+
+		~Allocator(){}
+
+		T* allocate(size_t size){
+			size *= sizeof(T);
+			store_t& l = *freeBuckets.get();
+			for(auto i = l.begin(); i != l.end(); ++i){
+				auto &chunk = *i;
+				if(chunk.second - chunk.first < size) 
+					continue;
+				size_t diff = chunk.second - chunk.first - size;
+				if(diff > 0){
+					char* ptr = chunk.first + size;
+					l.insert(i, std::pair(ptr, ptr + diff));
+				}
+				l.erase(i);
+				return (T*)chunk.first;
+			}
+			throw std::bad_alloc();
+		}
+		
+		void deallocate(T* ptr1, size_t n){
+			n *= sizeof(T);
+			char *ptr = (char*)ptr1;
+			store_t& l = *freeBuckets.get();
+			auto i = l.begin();
+			for (; i != l.end(); ++i) 
+				if((*i).first > ptr) 
+					break; 
+			l.insert(i, std::pair(ptr, ptr + n));
+			if(i != l.end()){
+				auto &chunk = *i; 
+				--i;
+				if (ptr + n == chunk.first){
+					(*i).second += chunk.second - chunk.first;
+					n += chunk.second - chunk.first;
+					auto j = i; ++j; 
+					l.erase(j); 
+				}
+			}
+			else 
+				--i;
+			if (i != l.begin())
+			{
+				auto j = i; --j;
+				auto &chunk = *j; 
+				if(chunk.second == ptr) {
+					chunk.second += n;
+					l.erase(i);
+				}
+			}
+		}
+
+		template<typename U, typename ...Args>
+		void construct(U *p, Args &&...args){
+			new (p) U(std::forward<Args>(args)...);
+		}
+		void destroy(pointer p){
+			p->~T();
+		}
+};
+template<class T, size_t N1, class U, size_t N2>
+bool operator==(Allocator<T,N1>& a, Allocator<U,N2>& b)noexcept{ 
+	return (sizeof(T)==sizeof(U)) && (N1==N2) && (a.pool.get()==b.pool.get()); 
+}
+
+template<class T, size_t N1, class U, size_t N2>
+bool operator!=(Allocator<T,N1>& a, Allocator<U,N2>& b)noexcept{
+	return !(a==b); 
+}
