@@ -4,6 +4,11 @@
 #include "list.h"
 #include "square_templ"
 #include"allocator"
+/*
+Трофимов М.А
+вариант 10
+список квадратов с алокатором
+*/
 
 void print_menu(){
 	std::cout
